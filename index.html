@@ -1,0 +1,301 @@
+    cat << 'EOF' > index.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buckshot Roulette Tracker</title>
+<style>
+  :root {
+    --bg: #121214;
+    --card: #1c1c20;
+    --border: #2e2e34;
+    --live: #ef4444;
+    --live-dark: #991b1b;
+    --blank: #3b82f6;
+    --blank-dark: #1e40af;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+  }
+  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 12px;
+  }
+  .app {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+  h1 {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin: 0 0 16px 0;
+    text-align: center;
+  }
+  .counters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .box {
+    background: #141417;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .box.live { border-top: 3px solid var(--live); }
+  .box.blank { border-top: 3px solid var(--blank); }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  .live .label { color: var(--live); }
+  .blank .label { color: var(--blank); }
+  .count { font-size: 36px; font-weight: 800; margin: 6px 0; }
+  .btns { display: flex; gap: 6px; justify-content: center; }
+  button {
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  button:active { transform: scale(0.95); }
+  button:hover { opacity: 0.9; }
+  .btn-add-live { background: var(--live); padding: 8px 14px; font-size: 16px; flex: 1; }
+  .btn-add-blank { background: var(--blank); padding: 8px 14px; font-size: 16px; flex: 1; }
+  .btn-shoot {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .live .btn-shoot { background: var(--live-dark); }
+  .blank .btn-shoot { background: var(--blank-dark); }
+  .prob-bar-container {
+    background: #141417;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .prob-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .bar {
+    height: 10px;
+    background: #27272a;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+  }
+  .bar-live { background: var(--live); transition: width 0.25s; }
+  .bar-blank { background: var(--blank); transition: width 0.25s; }
+  .chamber-section {
+    background: #141417;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .chamber-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .shells {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 44px;
+    align-items: center;
+  }
+  .shell {
+    width: 34px;
+    height: 44px;
+    border-radius: 6px;
+    border: 2px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    color: var(--muted);
+    background: #1c1c20;
+  }
+  .shell.known-live { background: var(--live); border: 2px solid #fca5a5; color: white; }
+  .shell.known-blank { background: var(--blank); border: 2px solid #93c5fd; color: white; }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-sec {
+    background: #27272a;
+    color: var(--text);
+    padding: 10px;
+    font-size: 12px;
+  }
+  .btn-reset { background: #3f3f46; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>Buckshot Tracker</h1>
+
+  <div class="counters">
+    <div class="box live">
+      <div class="label">REALES</div>
+      <div class="count" id="liveCount">0</div>
+      <div class="btns">
+        <button class="btn-add-live" onclick="addShell('live')">+1</button>
+      </div>
+      <button class="btn-shoot" onclick="shoot('live')">Disparada</button>
+    </div>
+
+    <div class="box blank">
+      <div class="label">FOGUEO</div>
+      <div class="count" id="blankCount">0</div>
+      <div class="btns">
+        <button class="btn-add-blank" onclick="addShell('blank')">+1</button>
+      </div>
+      <button class="btn-shoot" onclick="shoot('blank')">Disparada</button>
+    </div>
+  </div>
+
+  <div class="prob-bar-container">
+    <div class="prob-text">
+      <span style="color: var(--live)" id="liveProb">Real: 0%</span>
+      <span style="color: var(--blank)" id="blankProb">Fogueo: 0%</span>
+    </div>
+    <div class="bar">
+      <div class="bar-live" id="barLive" style="width: 0%"></div>
+      <div class="bar-blank" id="barBlank" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <div class="chamber-section">
+    <div class="chamber-title">
+      <span>Orden (Clic p/ marcar Lupa/Tel.)</span>
+      <span id="totalText">Total: 0</span>
+    </div>
+    <div class="shells" id="chamber"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-sec" onclick="undo()">↩ Deshacer</button>
+    <button class="btn-sec btn-reset" onclick="resetRound()">Nueva Ronda</button>
+  </div>
+</div>
+
+<script>
+  let state = { live: 0, blank: 0, order: [] };
+  let history = [];
+
+  function saveHistory() {
+    history.push(JSON.parse(JSON.stringify(state)));
+    if (history.length > 30) history.shift();
+  }
+
+  function addShell(type) {
+    if (state.live + state.blank >= 8) return;
+    saveHistory();
+    state[type]++;
+    state.order.push('unknown');
+    render();
+  }
+
+  function shoot(type) {
+    if (state[type] <= 0) return;
+    saveHistory();
+    state[type]--;
+    if (state.order.length > 0) state.order.shift();
+    render();
+  }
+
+  function toggleSlot(index) {
+    saveHistory();
+    const cycle = { 'unknown': 'live', 'live': 'blank', 'blank': 'unknown' };
+    state.order[index] = cycle[state.order[index]];
+    render();
+  }
+
+  function undo() {
+    if (history.length === 0) return;
+    state = history.pop();
+    render();
+  }
+
+  function resetRound() {
+    saveHistory();
+    state = { live: 0, blank: 0, order: [] };
+    render();
+  }
+
+  function render() {
+    document.getElementById('liveCount').textContent = state.live;
+    document.getElementById('blankCount').textContent = state.blank;
+
+    const total = state.live + state.blank;
+    document.getElementById('totalText').textContent = `Total: ${total}`;
+
+    let pLive = 0, pBlank = 0;
+    if (total > 0) {
+      // Si el siguiente cartucho ya está marcado con lupa/teléfono, la probabilidad es 100% / 0%
+      if (state.order[0] === 'live') {
+        pLive = 100; pBlank = 0;
+      } else if (state.order[0] === 'blank') {
+        pLive = 0; pBlank = 100;
+      } else {
+        pLive = Math.round((state.live / total) * 100);
+        pBlank = 100 - pLive;
+      }
+    }
+
+    document.getElementById('liveProb').textContent = `Real: ${pLive}%`;
+    document.getElementById('blankProb').textContent = `Fogueo: ${pBlank}%`;
+    document.getElementById('barLive').style.width = `${pLive}%`;
+    document.getElementById('barBlank').style.width = `${pBlank}%`;
+
+    const chamber = document.getElementById('chamber');
+    chamber.innerHTML = '';
+    state.order.forEach((status, i) => {
+      const div = document.createElement('div');
+      div.className = 'shell' + (status === 'live' ? ' known-live' : status === 'blank' ? ' known-blank' : '');
+      div.textContent = i + 1;
+      div.title = 'Clic para alternar: Desconocida -> Real -> Fogueo';
+      div.onclick = () => toggleSlot(i);
+      chamber.appendChild(div);
+    });
+  }
+
+  render();
+</script>
+</body>
+</html>
+EOF
+start index.html
