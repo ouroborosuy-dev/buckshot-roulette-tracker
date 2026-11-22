@@ -5,43 +5,160 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buckshot Tracker</title>
 <style>
-  :root { --bg:#121214; --card:#1c1c20; --bdr:#2e2e34; --live:#ef4444; --ld:#991b1b; --blk:#3b82f6; --bd:#1e40af; --txt:#f4f4f5; --mut:#a1a1aa; }
-  * { box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; user-select:none; }
-  body { background:var(--bg); color:var(--txt); display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; padding:12px; }
-  .app { background:var(--card); border:1px solid var(--bdr); border-radius:12px; padding:16px; width:100%; max-width:390px; box-shadow:0 10px 30px rgba(0,0,0,.6); }
-  h1 { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:var(--mut); margin:0 0 12px; text-align:center; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-  .box { background:#141417; border:1px solid var(--bdr); border-radius:8px; padding:10px; text-align:center; }
-  .box.live { border-top:3px solid var(--live); } .box.blank { border-top:3px solid var(--blk); }
-  .lbl { font-size:11px; font-weight:700; letter-spacing:1px; }
-  .live .lbl { color:var(--live); } .blank .lbl { color:var(--blk); }
-  .cnt { font-size:34px; font-weight:800; margin:2px 0; }
-  button { border:none; border-radius:6px; color:#fff; font-weight:700; cursor:pointer; }
-  button:active { transform:scale(.96); }
-  .btn-add { width:100%; padding:7px; font-size:15px; }
-  .live .btn-add { background:var(--live); } .blank .btn-add { background:var(--blk); }
-  .btn-sht { width:100%; margin-top:6px; padding:7px; font-size:11px; text-transform:uppercase; }
-  .live .btn-sht { background:var(--ld); } .blank .btn-sht { background:var(--bd); }
-  .panel { background:#141417; border:1px solid var(--bdr); border-radius:8px; padding:10px 12px; margin-bottom:12px; }
-  .p-hdr { font-size:10px; color:var(--mut); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; text-align:center; }
-  .p-txt { display:flex; justify-content:space-between; font-size:13px; font-weight:800; margin-bottom:6px; }
-  .bar { height:9px; background:#27272a; border-radius:5px; overflow:hidden; display:flex; }
-  .b-l { background:var(--live); transition:width .2s; } .b-b { background:var(--blk); transition:width .2s; }
-  .c-hdr { font-size:10px; color:var(--mut); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; display:flex; justify-content:space-between; }
-  .shells { display:flex; flex-wrap:wrap; gap:9px; min-height:64px; align-items:center; justify-content:center; }
-  .empty { font-size:12px; color:#52525b; font-style:italic; }
-  .shell { width:28px; height:54px; display:flex; flex-direction:column; cursor:pointer; position:relative; }
-  .shell.next::after { content:'▲'; position:absolute; bottom:-13px; left:50%; transform:translateX(-50%); font-size:9px; color:#fbbf24; }
-  .s-body { flex:1; background:#27272a; border:2px solid #3f3f46; border-bottom:none; border-radius:5px 5px 0 0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--mut); }
-  .s-brass { height:12px; background:linear-gradient(90deg,#a16207,#eab308,#a16207); border-radius:0 0 3px 3px; border:1px solid #854d0e; }
-  .shell.k-live .s-body { background:var(--live); border-color:#fca5a5; color:#fff; }
-  .shell.k-blank .s-body { background:var(--blk); border-color:#93c5fd; color:#fff; }
-  .shell.spent { opacity:.25; pointer-events:none; filter:grayscale(50%); }
-  .shell.spent .s-body { text-decoration:line-through; }
-  .btn-sec { background:#27272a; color:var(--txt); padding:9px; font-size:12px; }
-  .h-list { max-height:85px; overflow-y:auto; font-size:11px; display:flex; flex-direction:column; gap:3px; }
-  .h-item { display:flex; justify-content:space-between; padding:3px 6px; background:#1c1c20; border-radius:4px; border-left:2px solid #52525b; }
-  .h-live { border-left-color:var(--live); } .h-blank { border-left-color:var(--blk); } .h-mark { border-left-color:#fbbf24; }
+  :root {
+    --bg: #121214;
+    --card: #1c1c20;
+    --border: #2e2e34;
+    --live: #ef4444;
+    --live-dark: #991b1b;
+    --blank: #3b82f6;
+    --blank-dark: #1e40af;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+  }
+  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 12px;
+  }
+  .app {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+  h1 {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin: 0 0 16px 0;
+    text-align: center;
+  }
+  .counters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .box {
+    background: #141417;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .box.live { border-top: 3px solid var(--live); }
+  .box.blank { border-top: 3px solid var(--blank); }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  .live .label { color: var(--live); }
+  .blank .label { color: var(--blank); }
+  .count { font-size: 36px; font-weight: 800; margin: 6px 0; }
+  .btns { display: flex; gap: 6px; justify-content: center; }
+  button {
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  button:active { transform: scale(0.95); }
+  button:hover { opacity: 0.9; }
+  .btn-add-live { background: var(--live); padding: 8px 14px; font-size: 16px; flex: 1; }
+  .btn-add-blank { background: var(--blank); padding: 8px 14px; font-size: 16px; flex: 1; }
+  .btn-shoot {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .live .btn-shoot { background: var(--live-dark); }
+  .blank .btn-shoot { background: var(--blank-dark); }
+  .prob-bar-container {
+    background: #141417;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .prob-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .bar {
+    height: 10px;
+    background: #27272a;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+  }
+  .bar-live { background: var(--live); transition: width 0.25s; }
+  .bar-blank { background: var(--blank); transition: width 0.25s; }
+  .chamber-section {
+    background: #141417;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .chamber-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .shells {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 44px;
+    align-items: center;
+  }
+  .shell {
+    width: 34px;
+    height: 44px;
+    border-radius: 6px;
+    border: 2px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    color: var(--muted);
+    background: #1c1c20;
+  }
+  .shell.known-live { background: var(--live); border: 2px solid #fca5a5; color: white; }
+  .shell.known-blank { background: var(--blank); border: 2px solid #93c5fd; color: white; }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-sec {
+    background: #27272a;
+    color: var(--text);
+    padding: 10px;
+    font-size: 12px;
+  }
+  .btn-reset { background: #3f3f46; }
 </style>
 </head>
 <body>
@@ -70,9 +187,13 @@
     <div class="c-hdr"><span>Recámara (Clic p/ marcar)</span><span id="totTxt">Restantes: 0</span></div>
     <div class="shells" id="chm"></div>
   </div>
-  <div class="grid">
-    <button class="btn-sec" id="undoBtn" onclick="undo()">↩ Deshacer (0)</button>
-    <button class="btn-sec" style="background:#3f3f46" onclick="resetR()">Nueva Ronda</button>
+
+  <div class="chamber-section">
+    <div class="chamber-title">
+      <span>Orden (Clic p/ marcar Lupa/Tel.)</span>
+      <span id="totalText">Total: 0</span>
+    </div>
+    <div class="shells" id="chamber"></div>
   </div>
   <div class="panel" style="margin-bottom:0">
     <div class="c-hdr" style="margin-bottom:6px"><span>Historial</span><span id="hCnt">0 pasos</span></div>
@@ -107,42 +228,40 @@
   function undo() { if (hist.length) { st = hist.pop(); render(); } }
   function resetR() { if (st.order.length) { save('Nueva ronda'); st.live=0; st.blank=0; st.order=[]; render(); } }
   function render() {
-    document.getElementById('lCnt').textContent = st.live;
-    document.getElementById('bCnt').textContent = st.blank;
-    const rem = st.live + st.blank, nxt = st.order.findIndex(s => !s.spent);
-    document.getElementById('totTxt').textContent = `Restantes: ${rem}`;
-    let pL = 0, pB = 0;
-    if (rem > 0 && nxt !== -1) {
-      document.getElementById('nxtLbl').textContent = `Próximo disparo (Bala #${nxt+1})`;
-      const cur = st.order[nxt];
-      if (cur.status === 'live') { pL = 100; }
-      else if (cur.status === 'blank') { pB = 100; }
-      else {
-        let kL = 0, kB = 0, unk = 0;
-        st.order.forEach(x => { if (!x.spent) { if (x.status==='live') kL++; else if (x.status==='blank') kB++; else unk++; } });
-        const uL = Math.max(0, st.live - kL), uB = Math.max(0, st.blank - kB);
-        pL = (unk > 0 && (uL+uB) > 0) ? Math.round((uL/(uL+uB))*100) : Math.round((st.live/rem)*100);
-        pB = 100 - pL;
+    document.getElementById('liveCount').textContent = state.live;
+    document.getElementById('blankCount').textContent = state.blank;
+
+    const total = state.live + state.blank;
+    document.getElementById('totalText').textContent = `Total: ${total}`;
+
+    let pLive = 0, pBlank = 0;
+    if (total > 0) {
+      // Si el siguiente cartucho ya está marcado con lupa/teléfono, la probabilidad es 100% / 0%
+      if (state.order[0] === 'live') {
+        pLive = 100; pBlank = 0;
+      } else if (state.order[0] === 'blank') {
+        pLive = 0; pBlank = 100;
+      } else {
+        pLive = Math.round((state.live / total) * 100);
+        pBlank = 100 - pLive;
       }
-    } else { document.getElementById('nxtLbl').textContent = 'Sin balas en recámara'; }
-    document.getElementById('lPrb').textContent = `Real: ${pL}%`;
-    document.getElementById('bPrb').textContent = `Fogueo: ${pB}%`;
-    document.getElementById('barL').style.width = pL+'%';
-    document.getElementById('barB').style.width = pB+'%';
-    const chm = document.getElementById('chm'); chm.innerHTML = '';
-    if (!st.order.length) chm.innerHTML = '<span class="empty">Agrega balas con +1</span>';
-    st.order.forEach((s, i) => {
-      const d = document.createElement('div');
-      d.className = `shell ${s.status==='live'?'k-live':s.status==='blank'?'k-blank':''} ${s.spent?'spent':''} ${i===nxt?'next':''}`;
-      if (!s.spent) d.onclick = () => toggle(i);
-      d.innerHTML = `<div class="s-body">${i+1}</div><div class="s-brass"></div>`;
-      chm.appendChild(d);
+    }
+
+    document.getElementById('liveProb').textContent = `Real: ${pLive}%`;
+    document.getElementById('blankProb').textContent = `Fogueo: ${pBlank}%`;
+    document.getElementById('barLive').style.width = `${pLive}%`;
+    document.getElementById('barBlank').style.width = `${pBlank}%`;
+
+    const chamber = document.getElementById('chamber');
+    chamber.innerHTML = '';
+    state.order.forEach((status, i) => {
+      const div = document.createElement('div');
+      div.className = 'shell' + (status === 'live' ? ' known-live' : status === 'blank' ? ' known-blank' : '');
+      div.textContent = i + 1;
+      div.title = 'Clic para alternar: Desconocida -> Real -> Fogueo';
+      div.onclick = () => toggleSlot(i);
+      chamber.appendChild(div);
     });
-    document.getElementById('undoBtn').textContent = `↩ Deshacer (${hist.length})`;
-    document.getElementById('hCnt').textContent = `${hist.length} pasos`;
-    const hl = document.getElementById('hList');
-    hl.innerHTML = st.logs.length ? '' : '<span class="empty">Sin acciones aún</span>';
-    st.logs.forEach((l, idx) => { hl.innerHTML += `<div class="h-item ${l.cls}"><span>${l.txt}</span><span style="color:#71717a">#${st.logs.length-idx}</span></div>`; });
   }
   render();
 </script>
