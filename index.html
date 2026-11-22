@@ -435,17 +435,20 @@
   @media (max-width: 440px) {
     body { padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
     .app { padding: 12px; border-radius: 16px; gap: 10px; }
-    /* Dos filas de 4 cartuchos: más grandes y fáciles de tocar */
-    .chamber { grid-template-columns: repeat(4, 1fr); gap: 26px 12px; min-height: 120px; }
-    .shell-body { max-width: 52px; height: 84px; font-size: 22px; border-radius: 14px 14px 4px 4px; }
-    .shell-base { max-width: 56px; height: 20px; }
-    .next-indicator { font-size: 11px; top: -22px; }
+    /* Todos los cartuchos en una sola fila */
+    .chamber { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; min-height: 112px; }
+    .shell-body { max-width: 44px; height: 78px; font-size: 19px; border-width: 1.5px; border-radius: 12px 12px 3px 3px; }
+    .shell-base { max-width: 46px; height: 17px; }
+    .next-indicator { font-size: 10px; top: -21px; }
     .prob-col strong { font-size: 38px; }
   }
   @media (max-width: 340px) {
     .box-count { font-size: 38px; }
     .prob-col strong { font-size: 30px; }
-    .shell-body { height: 72px; font-size: 18px; }
+    .chamber { gap: 3px; }
+    .shell-body { height: 64px; font-size: 15px; }
+    .shell.unknown .shell-body span::after { display: none; }
+    .next-indicator { font-size: 9px; }
   }
   @media (hover: none) {
     .shell:hover:not(.spent) { transform: none; }
@@ -603,13 +606,21 @@
     return n;
   }
 
+  // Número visible de una bala: solo cuentan las que aún no se dispararon (la próxima siempre es #1).
+  function shellNum(idx) {
+    let n = 0;
+    for (let k = 0; k <= idx; k++) if (!state.order[k].spent) n++;
+    return n;
+  }
+
   // ---------- Acciones ----------
   function load(type) {
     if (state.order.length >= MAX_SHELLS) {
       toast(`Máximo ${MAX_SHELLS} cartuchos en la recámara.`);
       return;
     }
-    commit(`+1 ${type === 'live' ? 'Real' : 'Fogueo'} cargada (#${state.order.length + 1})`, type === 'live' ? 'h-live' : 'h-blank');
+    const pos = state.order.filter((s) => !s.spent).length + 1;
+    commit(`+1 ${type === 'live' ? 'Real' : 'Fogueo'} cargada (#${pos})`, type === 'live' ? 'h-live' : 'h-blank');
     state[type]++;
     state.order.push({ status: 'unknown', spent: false });
     render();
@@ -621,7 +632,7 @@
     if (state[type] <= 0) return { ok: false, msg: `No quedan cartuchos de ${NAMES[type]}.` };
     const s = state.order[i];
     if (s.status !== 'unknown' && s.status !== type) {
-      return { ok: false, msg: `La bala #${i + 1} está marcada como ${NAMES[s.status]}. Corrige el marcado primero.` };
+      return { ok: false, msg: `La bala #1 está marcada como ${NAMES[s.status]}. Corrige el marcado primero.` };
     }
     // Las marcas futuras de este tipo deben seguir cabiendo tras el disparo.
     if (markedCount(type, i) > state[type] - 1) {
@@ -634,7 +645,8 @@
     const check = canShoot(type);
     if (!check.ok) { toast(check.msg); return; }
     const i = check.idx;
-    commit(`Disparo #${i + 1}: ${NAMES[type]}`, type === 'live' ? 'h-live' : 'h-blank');
+    const shotNo = state.order.filter((s) => s.spent).length + 1;
+    commit(`Disparo ${shotNo}: ${NAMES[type]}`, type === 'live' ? 'h-live' : 'h-blank');
     state[type]--;
     state.order[i].spent = true;
     state.order[i].status = type;
@@ -662,7 +674,7 @@
       toast('No hay más balas de ese tipo para marcar.');
       return;
     }
-    commit(`Bala #${i + 1} → ${NAMES[next]}`, 'h-mark');
+    commit(`Bala #${shellNum(i)} → ${NAMES[next]}`, 'h-mark');
     s.status = next;
     render();
   }
@@ -698,8 +710,8 @@
     if (i === -1 || remaining === 0) return { live: 0, blank: 0, note: '', idx: -1 };
 
     const s = state.order[i];
-    if (s.status === 'live') return { live: 100, blank: 0, note: `Bala #${i + 1} <b>confirmada</b> como Real.`, idx: i };
-    if (s.status === 'blank') return { live: 0, blank: 100, note: `Bala #${i + 1} <b>confirmada</b> como Fogueo.`, idx: i };
+    if (s.status === 'live') return { live: 100, blank: 0, note: `Bala #1 <b>confirmada</b> como Real.`, idx: i };
+    if (s.status === 'blank') return { live: 0, blank: 100, note: `Bala #1 <b>confirmada</b> como Fogueo.`, idx: i };
 
     const mLive = markedCount('live');
     const mBlank = markedCount('blank');
@@ -742,7 +754,7 @@
     $('resetBtn').disabled = state.order.length === 0;
 
     const p = probability();
-    $('nextLabel').textContent = p.idx >= 0 ? `Próximo disparo · Bala #${p.idx + 1}` : 'Próximo disparo';
+    $('nextLabel').textContent = p.idx >= 0 ? 'Próximo disparo · Bala #1' : 'Próximo disparo';
     $('liveProb').textContent = fmt(p.live);
     $('blankProb').textContent = fmt(p.blank);
     $('barLive').style.width = p.live + '%';
@@ -768,10 +780,11 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `shell ${s.status}` + (s.spent ? ' spent' : '') + (i === nextIdx ? ' next' : '');
-      btn.setAttribute('aria-label', `Bala ${i + 1}: ${NAMES[s.status]}${s.spent ? ' (disparada)' : ''}`);
+      const n = s.spent ? 0 : shellNum(i);
+      btn.setAttribute('aria-label', s.spent ? `Bala disparada: ${NAMES[s.status]}` : `Bala ${n}: ${NAMES[s.status]}`);
       btn.title = s.spent
-        ? `Bala #${i + 1} disparada (${NAMES[s.status]})`
-        : `Bala #${i + 1}: ${NAMES[s.status]} · clic para alternar Incógnita → Real → Fogueo`;
+        ? `Bala disparada (${NAMES[s.status]})`
+        : `Bala #${n}: ${NAMES[s.status]} · clic para alternar Incógnita → Real → Fogueo`;
       if (s.spent) btn.disabled = true;
 
       if (i === nextIdx) {
@@ -783,7 +796,7 @@
       const body = document.createElement('div');
       body.className = 'shell-body';
       const num = document.createElement('span');
-      num.textContent = i + 1;
+      num.textContent = s.spent ? '' : n;
       body.appendChild(num);
       const base = document.createElement('div');
       base.className = 'shell-base';
