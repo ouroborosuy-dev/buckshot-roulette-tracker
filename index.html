@@ -3,267 +3,847 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buckshot Tracker</title>
+<meta name="theme-color" content="#0f0f12">
+<title>Buckshot Roulette Tracker</title>
 <style>
   :root {
-    --bg: #121214;
-    --card: #1c1c20;
-    --border: #2e2e34;
+    --bg: #0f0f12;
+    --card: #18181c;
+    --panel: #121215;
+    --border: #2a2a31;
     --live: #ef4444;
     --live-dark: #991b1b;
+    --live-light: #fca5a5;
     --blank: #3b82f6;
     --blank-dark: #1e40af;
+    --blank-light: #93c5fd;
+    --unknown: #52525b;
+    --brass: #d4a017;
     --text: #f4f4f5;
     --muted: #a1a1aa;
+    --mark: #eab308;
   }
-  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    background: var(--bg);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(239, 68, 68, 0.10), transparent 45%),
+      radial-gradient(circle at 85% 0%, rgba(59, 130, 246, 0.10), transparent 45%),
+      var(--bg);
+    background-attachment: fixed;
     color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
-    margin: 0;
-    padding: 12px;
+    min-height: 100dvh;
+    padding: max(12px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
   }
   .app {
+    width: 100%;
+    max-width: 420px;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    width: 100%;
-    max-width: 380px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
   h1 {
-    font-size: 15px;
+    font-size: 14px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     color: var(--muted);
-    margin: 0 0 16px 0;
-    text-align: center;
+    font-weight: 800;
   }
+  h1 span { color: var(--live); }
+  .round-tag {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  /* ---------- Contadores ---------- */
   .counters {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 10px;
   }
   .box {
-    background: #141417;
+    background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 10px;
     text-align: center;
   }
   .box.live { border-top: 3px solid var(--live); }
   .box.blank { border-top: 3px solid var(--blank); }
-  .label { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-  .live .label { color: var(--live); }
-  .blank .label { color: var(--blank); }
-  .count { font-size: 36px; font-weight: 800; margin: 6px 0; }
-  .btns { display: flex; gap: 6px; justify-content: center; }
+  .box-label { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; }
+  .live .box-label { color: var(--live); }
+  .blank .box-label { color: var(--blank); }
+  .box.live { background: linear-gradient(180deg, rgba(239, 68, 68, 0.12), var(--panel) 60%); }
+  .box.blank { background: linear-gradient(180deg, rgba(59, 130, 246, 0.12), var(--panel) 60%); }
+  .box-count { font-size: 46px; font-weight: 900; line-height: 1.05; margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+  .live .box-count { text-shadow: 0 0 18px rgba(239, 68, 68, 0.45); }
+  .blank .box-count { text-shadow: 0 0 18px rgba(59, 130, 246, 0.45); }
+  .box-sub { font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+  .box-btns { display: flex; flex-direction: column; gap: 6px; }
+
   button {
     border: none;
-    border-radius: 6px;
-    color: white;
-    font-weight: 700;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 800;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.05s;
+    font-family: inherit;
+    transition: filter 0.15s, transform 0.06s, opacity 0.15s;
   }
-  button:active { transform: scale(0.95); }
-  button:hover { opacity: 0.9; }
-  .btn-add-live { background: var(--live); padding: 8px 14px; font-size: 16px; flex: 1; }
-  .btn-add-blank { background: var(--blank); padding: 8px 14px; font-size: 16px; flex: 1; }
-  .btn-shoot {
-    width: 100%;
-    margin-top: 8px;
-    padding: 8px;
-    font-size: 12px;
-    text-transform: uppercase;
-  }
+  button:hover:not(:disabled) { filter: brightness(1.12); }
+  button:active:not(:disabled) { transform: scale(0.96); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+  .btn-add { min-height: 52px; padding: 10px; font-size: 22px; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35); }
+  .live .btn-add { background: var(--live); }
+  .blank .btn-add { background: var(--blank); }
+  .btn-shoot { min-height: 48px; padding: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35); }
   .live .btn-shoot { background: var(--live-dark); }
   .blank .btn-shoot { background: var(--blank-dark); }
-  .prob-bar-container {
-    background: #141417;
-    border-radius: 8px;
-    padding: 12px;
+
+  /* ---------- Paneles ---------- */
+  .panel {
+    background: var(--panel);
     border: 1px solid var(--border);
-    margin-bottom: 16px;
+    border-radius: 10px;
+    padding: 12px;
   }
-  .prob-text {
+  .panel-hdr {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-  .bar {
-    height: 10px;
-    background: #27272a;
-    border-radius: 5px;
-    overflow: hidden;
-    display: flex;
-  }
-  .bar-live { background: var(--live); transition: width 0.25s; }
-  .bar-blank { background: var(--blank); transition: width 0.25s; }
-  .chamber-section {
-    background: #141417;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
-  }
-  .chamber-title {
+    align-items: center;
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  /* ---------- Probabilidad ---------- */
+  .prob-text {
     display: flex;
     justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 10px;
   }
-  .shells {
+  .prob-col { display: flex; flex-direction: column; line-height: 1; }
+  .prob-col:last-child { align-items: flex-end; }
+  .prob-col small { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 4px; opacity: 0.85; }
+  .prob-col strong { font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .prob-live { color: var(--live); }
+  .prob-blank { color: var(--blank); }
+  .bar {
+    height: 16px;
+    background: #27272a;
+    border-radius: 8px;
+    overflow: hidden;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 44px;
-    align-items: center;
+  }
+  .bar-live { background: var(--live); transition: width 0.3s ease; }
+  .bar-blank { background: var(--blank); transition: width 0.3s ease; }
+  .prob-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    min-height: 14px;
+  }
+  .prob-note b { color: var(--mark); font-weight: 700; }
+
+  /* ---------- Recámara ---------- */
+  .chamber {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    padding-top: 22px;
+    min-height: 112px;
+    align-items: end;
+  }
+  .chamber-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    align-self: center;
+    padding-bottom: 22px;
   }
   .shell {
-    width: 34px;
-    height: 44px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    background: none;
+    padding: 0;
     border-radius: 6px;
-    border: 2px dashed var(--border);
+    transition: transform 0.12s, opacity 0.2s;
+  }
+  .shell:hover:not(.spent) { transform: translateY(-3px); }
+  .shell-body {
+    width: 100%;
+    max-width: 40px;
+    height: 70px;
+    border-radius: 10px 10px 3px 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-    color: var(--muted);
-    background: #1c1c20;
+    font-size: 17px;
+    font-weight: 900;
+    color: #fff;
+    position: relative;
+    background: linear-gradient(90deg, #3f3f46 0%, #71717a 35%, #52525b 60%, #3f3f46 100%);
+    border: 2px solid #71717a;
+    border-bottom: none;
+    box-shadow: inset 0 6px 6px -4px rgba(255, 255, 255, 0.25);
   }
-  .shell.known-live { background: var(--live); border: 2px solid #fca5a5; color: white; }
-  .shell.known-blank { background: var(--blank); border: 2px solid #93c5fd; color: white; }
+  .shell-body::before {
+    /* Pliegue superior del cartucho */
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 40%;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .shell-base {
+    width: 100%;
+    max-width: 42px;
+    height: 16px;
+    border-radius: 2px 2px 4px 4px;
+    background: linear-gradient(90deg, #8a6508 0%, #f5d061 30%, #d4a017 55%, #8a6508 100%);
+    border: 1px solid #6b4e05;
+    position: relative;
+  }
+  .shell-base::before,
+  .shell-base::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .shell-base::before { top: 4px; }
+  .shell-base::after { bottom: 3px; }
+
+  .shell.live .shell-body {
+    background: linear-gradient(90deg, #7f1d1d 0%, #ef4444 35%, #dc2626 60%, #7f1d1d 100%);
+    border-color: var(--live-light);
+  }
+  .shell.blank .shell-body {
+    background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 35%, #2563eb 60%, #1e3a8a 100%);
+    border-color: var(--blank-light);
+  }
+  .shell.unknown .shell-body { color: #e4e4e7; }
+  .shell.unknown .shell-body span::after { content: '?'; font-size: 9px; vertical-align: super; opacity: 0.7; }
+
+  .shell.spent {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: saturate(0.7);
+  }
+  .shell.spent .shell-body span { text-decoration: line-through; text-decoration-thickness: 2px; }
+  .shell.spent .shell-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top right, transparent calc(50% - 1.5px), #fff calc(50% - 1.5px), #fff calc(50% + 1.5px), transparent calc(50% + 1.5px));
+  }
+
+  .shell.next .shell-body { box-shadow: 0 0 0 2px var(--mark), 0 0 14px rgba(234, 179, 8, 0.55); }
+  .next-indicator {
+    position: absolute;
+    top: -21px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--mark);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    animation: bob 1s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, 3px); }
+  }
+  .shell.denied { animation: shake 0.3s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .legend i {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: -1px;
+  }
+
+  /* ---------- Controles ---------- */
   .controls {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+    position: sticky;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 5;
+    padding: 8px;
+    margin: 0 -8px;
+    border-radius: 12px;
+    background: rgba(24, 24, 28, 0.88);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
   .btn-sec {
     background: #27272a;
     color: var(--text);
-    padding: 10px;
-    font-size: 12px;
+    min-height: 50px;
+    padding: 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
   }
   .btn-reset { background: #3f3f46; }
+  .badge {
+    display: inline-block;
+    min-width: 18px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    border-radius: 999px;
+    background: var(--mark);
+    color: #000;
+    font-size: 10px;
+  }
+
+  /* ---------- Historial ---------- */
+  .history {
+    max-height: 190px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #3f3f46 transparent;
+  }
+  .h-item {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 7px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+    background: #1c1c21;
+    border-left: 3px solid var(--unknown);
+  }
+  .h-item .h-num { color: var(--muted); font-size: 10px; min-width: 20px; }
+  .h-item .h-txt { flex: 1; }
+  .h-item .h-time { color: var(--muted); font-size: 10px; }
+  .h-live { border-left-color: var(--live); }
+  .h-live .h-txt { color: var(--live-light); }
+  .h-blank { border-left-color: var(--blank); }
+  .h-blank .h-txt { color: var(--blank-light); }
+  .h-mark { border-left-color: var(--mark); }
+  .h-round {
+    border-left-color: var(--text);
+    background: #26262c;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 11px;
+  }
+  .h-empty { color: var(--muted); text-align: center; padding: 10px; font-size: 12px; }
+  .link-btn {
+    background: none;
+    color: var(--muted);
+    font-size: 11px;
+    padding: 6px 10px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    top: max(14px, env(safe-area-inset-top));
+    bottom: auto;
+    transform: translate(-50%, -30px);
+    background: #27272a;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--mark);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    max-width: 92vw;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 10;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- Móviles ---------- */
+  @media (max-width: 440px) {
+    body { padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
+    .app { padding: 12px; border-radius: 16px; gap: 10px; }
+    /* Dos filas de 4 cartuchos: más grandes y fáciles de tocar */
+    .chamber { grid-template-columns: repeat(4, 1fr); gap: 26px 12px; min-height: 120px; }
+    .shell-body { max-width: 52px; height: 84px; font-size: 22px; border-radius: 14px 14px 4px 4px; }
+    .shell-base { max-width: 56px; height: 20px; }
+    .next-indicator { font-size: 11px; top: -22px; }
+    .prob-col strong { font-size: 38px; }
+  }
+  @media (max-width: 340px) {
+    .box-count { font-size: 38px; }
+    .prob-col strong { font-size: 30px; }
+    .shell-body { height: 72px; font-size: 18px; }
+  }
+  @media (hover: none) {
+    .shell:hover:not(.spent) { transform: none; }
+    .shell:active:not(.spent) { transform: scale(0.94); }
+  }
 </style>
 </head>
 <body>
-<div class="app">
-  <h1>Buckshot Tracker</h1>
-  <div class="grid">
+<main class="app">
+  <header>
+    <h1>Buckshot <span>Tracker</span></h1>
+    <span class="round-tag" id="roundTag">Ronda 1</span>
+  </header>
+
+  <section class="counters">
     <div class="box live">
-      <div class="lbl">REALES</div>
-      <div class="cnt" id="lCnt">0</div>
-      <button class="btn-add" onclick="add('live')">+1</button>
-      <button class="btn-sht" onclick="shoot('live')">Disparada</button>
+      <div class="box-label">REALES</div>
+      <div class="box-count" id="liveCount">0</div>
+      <div class="box-sub" id="liveSub">0 cargadas · 0 disparadas</div>
+      <div class="box-btns">
+        <button class="btn-add" id="addLive" title="Cargar un cartucho real">+1</button>
+        <button class="btn-shoot" id="shootLive" title="Registrar disparo real">Disparada</button>
+      </div>
     </div>
     <div class="box blank">
-      <div class="lbl">FOGUEO</div>
-      <div class="cnt" id="bCnt">0</div>
-      <button class="btn-add" onclick="add('blank')">+1</button>
-      <button class="btn-sht" onclick="shoot('blank')">Disparada</button>
+      <div class="box-label">FOGUEO</div>
+      <div class="box-count" id="blankCount">0</div>
+      <div class="box-sub" id="blankSub">0 cargadas · 0 disparadas</div>
+      <div class="box-btns">
+        <button class="btn-add" id="addBlank" title="Cargar un cartucho de fogueo">+1</button>
+        <button class="btn-shoot" id="shootBlank" title="Registrar disparo de fogueo">Disparada</button>
+      </div>
     </div>
-  </div>
-  <div class="panel">
-    <div class="p-hdr" id="nxtLbl">Próximo disparo</div>
-    <div class="p-txt"><span style="color:var(--live)" id="lPrb">Real: 0%</span><span style="color:var(--blk)" id="bPrb">Fogueo: 0%</span></div>
-    <div class="bar"><div class="b-l" id="barL" style="width:0%"></div><div class="b-b" id="barB" style="width:0%"></div></div>
-  </div>
-  <div class="panel">
-    <div class="c-hdr"><span>Recámara (Clic p/ marcar)</span><span id="totTxt">Restantes: 0</span></div>
-    <div class="shells" id="chm"></div>
-  </div>
+  </section>
 
-  <div class="chamber-section">
-    <div class="chamber-title">
-      <span>Orden (Clic p/ marcar Lupa/Tel.)</span>
-      <span id="totalText">Total: 0</span>
+  <section class="panel">
+    <div class="panel-hdr">
+      <span id="nextLabel">Próximo disparo</span>
+      <span id="remainingText">Restantes: 0</span>
     </div>
-    <div class="shells" id="chamber"></div>
-  </div>
-  <div class="panel" style="margin-bottom:0">
-    <div class="c-hdr" style="margin-bottom:6px"><span>Historial</span><span id="hCnt">0 pasos</span></div>
-    <div class="h-list" id="hList"><span class="empty">Sin acciones aún</span></div>
-  </div>
-</div>
+    <div class="prob-text">
+      <div class="prob-col prob-live"><small>REAL</small><strong id="liveProb">0%</strong></div>
+      <div class="prob-col prob-blank"><small>FOGUEO</small><strong id="blankProb">0%</strong></div>
+    </div>
+    <div class="bar">
+      <div class="bar-live" id="barLive" style="width:0%"></div>
+      <div class="bar-blank" id="barBlank" style="width:0%"></div>
+    </div>
+    <div class="prob-note" id="probNote"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-hdr">
+      <span>Recámara · clic = Lupa / Teléfono</span>
+      <span id="loadedText">0 / 8</span>
+    </div>
+    <div class="chamber" id="chamber"></div>
+    <div class="legend">
+      <span><i style="background:var(--unknown)"></i>Incógnita</span>
+      <span><i style="background:var(--live)"></i>Real</span>
+      <span><i style="background:var(--blank)"></i>Fogueo</span>
+      <span><i style="background:var(--mark)"></i>Próxima</span>
+    </div>
+  </section>
+
+  <section class="controls">
+    <button class="btn-sec" id="undoBtn" title="Deshacer (Ctrl+Z)">↶ Deshacer<span class="badge" id="undoCount">0</span></button>
+    <button class="btn-sec btn-reset" id="resetBtn" title="Vaciar la recámara y empezar una nueva ronda">⟳ Nueva Ronda</button>
+  </section>
+
+  <section class="panel">
+    <div class="panel-hdr">
+      <span>Historial de la partida</span>
+      <span>
+        <span id="historyCount">0 acciones</span>
+        <button class="link-btn" id="clearHistoryBtn" title="Borrar todo (partida nueva)">Borrar</button>
+      </span>
+    </div>
+    <div class="history" id="history"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <script>
-  let st = { live:0, blank:0, order:[], logs:[] }, hist = [];
-  const save = (txt, cls='') => { hist.push(JSON.parse(JSON.stringify(st))); st.logs.unshift({txt, cls}); };
-  function add(t) {
-    if (st.order.length >= 8) return;
-    save(t==='live' ? '+1 Real cargada' : '+1 Fogueo cargada', t==='live'?'h-live':'h-blank');
-    st[t]++; st.order.push({ status:'unknown', spent:false }); render();
-  }
-  function shoot(t) {
-    const i = st.order.findIndex(s => !s.spent);
-    if (st[t] <= 0 || i === -1) return;
-    save(`Disparo #${i+1}: ${t==='live'?'REAL':'FOGUEO'}`, t==='live'?'h-live':'h-blank');
-    st[t]--; st.order[i].spent = true; st.order[i].status = t; render();
-  }
-  function toggle(i) {
-    const s = st.order[i]; if (!s || s.spent) return;
-    let mL = 0, mB = 0;
-    st.order.forEach((x, idx) => { if (!x.spent && idx !== i) { if (x.status==='live') mL++; if (x.status==='blank') mB++; } });
-    const opts = ['unknown'];
-    if (mL < st.live) opts.push('live');
-    if (mB < st.blank) opts.push('blank');
-    const nxt = opts[(opts.indexOf(s.status) + 1) % opts.length];
-    save(`Bala #${i+1} -> ${nxt==='live'?'REAL':nxt==='blank'?'FOGUEO':'Incógnita'}`, 'h-mark');
-    s.status = nxt; render();
-  }
-  function undo() { if (hist.length) { st = hist.pop(); render(); } }
-  function resetR() { if (st.order.length) { save('Nueva ronda'); st.live=0; st.blank=0; st.order=[]; render(); } }
-  function render() {
-    document.getElementById('liveCount').textContent = state.live;
-    document.getElementById('blankCount').textContent = state.blank;
+(() => {
+  'use strict';
 
-    const total = state.live + state.blank;
-    document.getElementById('totalText').textContent = `Total: ${total}`;
+  const MAX_SHELLS = 8;
+  const STORAGE_KEY = 'bsr-tracker-v2';
+  const NAMES = { live: 'REAL', blank: 'FOGUEO', unknown: 'Incógnita' };
 
-    let pLive = 0, pBlank = 0;
-    if (total > 0) {
-      // Si el siguiente cartucho ya está marcado con lupa/teléfono, la probabilidad es 100% / 0%
-      if (state.order[0] === 'live') {
-        pLive = 100; pBlank = 0;
-      } else if (state.order[0] === 'blank') {
-        pLive = 0; pBlank = 100;
-      } else {
-        pLive = Math.round((state.live / total) * 100);
-        pBlank = 100 - pLive;
+  // order: cartuchos de la recámara en orden de disparo.
+  // live/blank: cartuchos de cada tipo que AÚN quedan sin disparar.
+  const freshState = () => ({
+    round: 1,
+    live: 0,
+    blank: 0,
+    order: [],
+    logs: []
+  });
+
+  let state = freshState();
+  let undoStack = [];
+
+  const $ = (id) => document.getElementById(id);
+  const clone = (obj) => JSON.parse(JSON.stringify(obj));
+
+  // ---------- Persistencia ----------
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ state, undoStack: undoStack.slice(-100) }));
+    } catch (e) { /* almacenamiento no disponible */ }
+  }
+  function restore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data && data.state && Array.isArray(data.state.order)) {
+        state = data.state;
+        undoStack = Array.isArray(data.undoStack) ? data.undoStack : [];
       }
+    } catch (e) { /* datos corruptos: se ignoran */ }
+  }
+
+  // ---------- Utilidades ----------
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function timeNow() {
+    const d = new Date();
+    return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function commit(text, cls) {
+    undoStack.push(clone(state));
+    state.logs.push({ text, cls: cls || '', time: timeNow() });
+  }
+
+  const nextIndex = () => state.order.findIndex((s) => !s.spent);
+
+  // Cantidad de cartuchos sin disparar marcados con un tipo, opcionalmente excluyendo un índice.
+  function markedCount(type, excludeIdx) {
+    let n = 0;
+    state.order.forEach((s, i) => {
+      if (!s.spent && i !== excludeIdx && s.status === type) n++;
+    });
+    return n;
+  }
+
+  // ---------- Acciones ----------
+  function load(type) {
+    if (state.order.length >= MAX_SHELLS) {
+      toast(`Máximo ${MAX_SHELLS} cartuchos en la recámara.`);
+      return;
     }
+    commit(`+1 ${type === 'live' ? 'Real' : 'Fogueo'} cargada (#${state.order.length + 1})`, type === 'live' ? 'h-live' : 'h-blank');
+    state[type]++;
+    state.order.push({ status: 'unknown', spent: false });
+    render();
+  }
 
-    document.getElementById('liveProb').textContent = `Real: ${pLive}%`;
-    document.getElementById('blankProb').textContent = `Fogueo: ${pBlank}%`;
-    document.getElementById('barLive').style.width = `${pLive}%`;
-    document.getElementById('barBlank').style.width = `${pBlank}%`;
+  function canShoot(type) {
+    const i = nextIndex();
+    if (i === -1) return { ok: false, msg: 'No quedan cartuchos sin disparar.' };
+    if (state[type] <= 0) return { ok: false, msg: `No quedan cartuchos de ${NAMES[type]}.` };
+    const s = state.order[i];
+    if (s.status !== 'unknown' && s.status !== type) {
+      return { ok: false, msg: `La bala #${i + 1} está marcada como ${NAMES[s.status]}. Corrige el marcado primero.` };
+    }
+    // Las marcas futuras de este tipo deben seguir cabiendo tras el disparo.
+    if (markedCount(type, i) > state[type] - 1) {
+      return { ok: false, msg: `Imposible: las balas marcadas como ${NAMES[type]} superan las que quedarían.` };
+    }
+    return { ok: true, idx: i };
+  }
 
-    const chamber = document.getElementById('chamber');
+  function shoot(type) {
+    const check = canShoot(type);
+    if (!check.ok) { toast(check.msg); return; }
+    const i = check.idx;
+    commit(`Disparo #${i + 1}: ${NAMES[type]}`, type === 'live' ? 'h-live' : 'h-blank');
+    state[type]--;
+    state.order[i].spent = true;
+    state.order[i].status = type;
+    if (navigator.vibrate) navigator.vibrate(type === 'live' ? [60, 40, 120] : 40);
+    render();
+  }
+
+  function toggle(i, el) {
+    const s = state.order[i];
+    if (!s || s.spent) return;
+    const options = ['unknown'];
+    if (markedCount('live', i) < state.live) options.push('live');
+    if (markedCount('blank', i) < state.blank) options.push('blank');
+
+    // Ciclo fijo Incógnita -> Real -> Fogueo, saltando estados no permitidos.
+    const cycle = ['unknown', 'live', 'blank'];
+    let pos = cycle.indexOf(s.status);
+    let next = s.status;
+    for (let k = 1; k <= cycle.length; k++) {
+      const candidate = cycle[(pos + k) % cycle.length];
+      if (options.includes(candidate)) { next = candidate; break; }
+    }
+    if (next === s.status) {
+      if (el) { el.classList.remove('denied'); void el.offsetWidth; el.classList.add('denied'); }
+      toast('No hay más balas de ese tipo para marcar.');
+      return;
+    }
+    commit(`Bala #${i + 1} → ${NAMES[next]}`, 'h-mark');
+    s.status = next;
+    render();
+  }
+
+  function undo() {
+    if (!undoStack.length) { toast('Nada para deshacer.'); return; }
+    state = undoStack.pop();
+    render();
+  }
+
+  function newRound() {
+    if (!state.order.length) { toast('La recámara ya está vacía.'); return; }
+    commit(`Nueva ronda (${state.round + 1})`, 'h-round');
+    state.round++;
+    state.live = 0;
+    state.blank = 0;
+    state.order = [];
+    render();
+  }
+
+  function clearAll() {
+    if (!state.logs.length && !state.order.length) return;
+    if (!confirm('¿Borrar recámara, historial y pasos de deshacer?')) return;
+    state = freshState();
+    undoStack = [];
+    render();
+  }
+
+  // ---------- Probabilidad ----------
+  function probability() {
+    const i = nextIndex();
+    const remaining = state.live + state.blank;
+    if (i === -1 || remaining === 0) return { live: 0, blank: 0, note: '', idx: -1 };
+
+    const s = state.order[i];
+    if (s.status === 'live') return { live: 100, blank: 0, note: `Bala #${i + 1} <b>confirmada</b> como Real.`, idx: i };
+    if (s.status === 'blank') return { live: 0, blank: 100, note: `Bala #${i + 1} <b>confirmada</b> como Fogueo.`, idx: i };
+
+    const mLive = markedCount('live');
+    const mBlank = markedCount('blank');
+    const uLive = Math.max(0, state.live - mLive);
+    const uBlank = Math.max(0, state.blank - mBlank);
+    const unknowns = uLive + uBlank;
+    if (unknowns === 0) return { live: 0, blank: 0, note: '', idx: i };
+
+    const pLive = (uLive / unknowns) * 100;
+    const live = Math.round(pLive * 10) / 10;
+    const blank = Math.round((100 - pLive) * 10) / 10;
+    let note = `${uLive} real(es) y ${uBlank} fogueo(s) entre ${unknowns} incógnita(s).`;
+    if (mLive || mBlank) note += ` <b>Descontadas ${mLive + mBlank} marcada(s).</b>`;
+    return { live, blank, note, idx: i };
+  }
+
+  const fmt = (n) => (Number.isInteger(n) ? n : n.toFixed(1)) + '%';
+
+  // ---------- Render ----------
+  function render() {
+    const loadedLive = state.order.filter((s) => !s.spent).length; // solo para texto restante
+    const spentLive = state.order.filter((s) => s.spent && s.status === 'live').length;
+    const spentBlank = state.order.filter((s) => s.spent && s.status === 'blank').length;
+
+    $('liveCount').textContent = state.live;
+    $('blankCount').textContent = state.blank;
+    $('liveSub').textContent = `${state.live + spentLive} cargadas · ${spentLive} disparadas`;
+    $('blankSub').textContent = `${state.blank + spentBlank} cargadas · ${spentBlank} disparadas`;
+    $('roundTag').textContent = `Ronda ${state.round}`;
+    $('remainingText').textContent = `Restantes: ${loadedLive}`;
+    $('loadedText').textContent = `${state.order.length} / ${MAX_SHELLS}`;
+
+    const full = state.order.length >= MAX_SHELLS;
+    $('addLive').disabled = full;
+    $('addBlank').disabled = full;
+    $('shootLive').disabled = !canShoot('live').ok;
+    $('shootBlank').disabled = !canShoot('blank').ok;
+    $('undoBtn').disabled = undoStack.length === 0;
+    $('undoCount').textContent = undoStack.length;
+    $('resetBtn').disabled = state.order.length === 0;
+
+    const p = probability();
+    $('nextLabel').textContent = p.idx >= 0 ? `Próximo disparo · Bala #${p.idx + 1}` : 'Próximo disparo';
+    $('liveProb').textContent = fmt(p.live);
+    $('blankProb').textContent = fmt(p.blank);
+    $('barLive').style.width = p.live + '%';
+    $('barBlank').style.width = p.blank + '%';
+    $('probNote').innerHTML = p.idx >= 0 ? p.note : (state.order.length ? 'Recámara agotada. Inicia una nueva ronda.' : 'Carga cartuchos con los botones +1.');
+
+    renderChamber(p.idx);
+    renderHistory();
+    persist();
+  }
+
+  function renderChamber(nextIdx) {
+    const chamber = $('chamber');
     chamber.innerHTML = '';
-    state.order.forEach((status, i) => {
-      const div = document.createElement('div');
-      div.className = 'shell' + (status === 'live' ? ' known-live' : status === 'blank' ? ' known-blank' : '');
-      div.textContent = i + 1;
-      div.title = 'Clic para alternar: Desconocida -> Real -> Fogueo';
-      div.onclick = () => toggleSlot(i);
-      chamber.appendChild(div);
+    if (!state.order.length) {
+      const empty = document.createElement('div');
+      empty.className = 'chamber-empty';
+      empty.textContent = 'Recámara vacía';
+      chamber.appendChild(empty);
+      return;
+    }
+    state.order.forEach((s, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `shell ${s.status}` + (s.spent ? ' spent' : '') + (i === nextIdx ? ' next' : '');
+      btn.setAttribute('aria-label', `Bala ${i + 1}: ${NAMES[s.status]}${s.spent ? ' (disparada)' : ''}`);
+      btn.title = s.spent
+        ? `Bala #${i + 1} disparada (${NAMES[s.status]})`
+        : `Bala #${i + 1}: ${NAMES[s.status]} · clic para alternar Incógnita → Real → Fogueo`;
+      if (s.spent) btn.disabled = true;
+
+      if (i === nextIdx) {
+        const ind = document.createElement('div');
+        ind.className = 'next-indicator';
+        ind.textContent = '▼ SIG.';
+        btn.appendChild(ind);
+      }
+      const body = document.createElement('div');
+      body.className = 'shell-body';
+      const num = document.createElement('span');
+      num.textContent = i + 1;
+      body.appendChild(num);
+      const base = document.createElement('div');
+      base.className = 'shell-base';
+      btn.appendChild(body);
+      btn.appendChild(base);
+
+      btn.addEventListener('click', () => toggle(i, btn));
+      chamber.appendChild(btn);
     });
   }
+
+  function renderHistory() {
+    const list = $('history');
+    const n = state.logs.length;
+    $('historyCount').textContent = `${n} ${n === 1 ? 'acción' : 'acciones'}`;
+    list.innerHTML = '';
+    if (!n) {
+      const empty = document.createElement('div');
+      empty.className = 'h-empty';
+      empty.textContent = 'Sin acciones aún';
+      list.appendChild(empty);
+      return;
+    }
+    state.logs.forEach((log, i) => {
+      const item = document.createElement('div');
+      item.className = `h-item ${log.cls}`;
+      const num = document.createElement('span');
+      num.className = 'h-num';
+      num.textContent = `${i + 1}.`;
+      const txt = document.createElement('span');
+      txt.className = 'h-txt';
+      txt.textContent = log.text;
+      const time = document.createElement('span');
+      time.className = 'h-time';
+      time.textContent = log.time || '';
+      item.append(num, txt, time);
+      list.appendChild(item);
+    });
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // ---------- Eventos ----------
+  $('addLive').addEventListener('click', () => load('live'));
+  $('addBlank').addEventListener('click', () => load('blank'));
+  $('shootLive').addEventListener('click', () => shoot('live'));
+  $('shootBlank').addEventListener('click', () => shoot('blank'));
+  $('undoBtn').addEventListener('click', undo);
+  $('resetBtn').addEventListener('click', newRound);
+  $('clearHistoryBtn').addEventListener('click', clearAll);
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      undo();
+    }
+  });
+
+  restore();
   render();
+})();
 </script>
 </body>
 </html>
